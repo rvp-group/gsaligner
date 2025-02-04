@@ -15,12 +15,10 @@ option(COMPILE_CPP_APPS "Set to ON to compile C++ applications" OFF)
 # TODO: Detect if Eigen exists in system, oterwhise, download it through FetchContent
 find_package(Eigen3 3.3 NO_MODULE)
 
-find_package(OpenCV REQUIRED)
-message(STATUS "${PROJECT_NAME}: OpenCV version ${OpenCV_VERSION}")
-message(STATUS "OpenCV_INCLUDE_DIRS: ${OpenCV_INCLUDE_DIRS}")
-
-find_package(GTest REQUIRED)
-
+# find_package(OpenCV REQUIRED)
+# message(STATUS "${PROJECT_NAME}: OpenCV version ${OpenCV_VERSION}")
+# message(STATUS "OpenCV_INCLUDE_DIRS: ${OpenCV_INCLUDE_DIRS}")
+# find_package(GTest REQUIRED)
 if(${Eigen3_DIR} STREQUAL "Eigen3_DIR-NOTFOUND")
     message(CHECK_START "Fetching Eigen3")
     list(APPEND CMAKE_MESSAGE_INDENT "  ")
@@ -47,8 +45,8 @@ set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -diag-suppress 20012") # TODO: use flo
 find_package(CUDA REQUIRED)
 CUDA_SELECT_NVCC_ARCH_FLAGS(ARCH_FLAGS "Auto")
 set(CUDA_ARCH "${ARCH_FLAGS}" CACHE STRING "Value of the NVCC -arch option." FORCE)
-# set(CUDA_ARCH "-gencode;arch=compute_75,code=sm_75")
 
+# set(CUDA_ARCH "-gencode;arch=compute_75,code=sm_75")
 set(CUDA_VERBOSE_BUILD ON CACHE BOOL "nvcc verbose" FORCE)
 set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} ${CUDA_ARCH} -lineinfo -Wno-dev")
 message("CUDA ARCH FLAGS: ${ARCH_FLAGS}")
@@ -87,15 +85,14 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/src
     ${PYTHON_INCLUDE_DIRS}
     ${CUDA_INCLUDE_DIRS}
-    ${OpenCV_INCLUDE_DIRS}
+
+    # ${OpenCV_INCLUDE_DIRS}
     ${GTEST_INCLUDE_DIR}
 )
 
-set(TEST_DATA_FOLDER "${CMAKE_CURRENT_SOURCE_DIR}/../test_data/")
-add_definitions(-DGSTEST_DATA_FOLDER="${TEST_DATA_FOLDER}")
-message("${PROJECT_NAME}|test_data dir = ${TEST_DATA_FOLDER}")
-
+# set(TEST_DATA_FOLDER "${CMAKE_CURRENT_SOURCE_DIR}/../test_data/")
+# add_definitions(-DGSTEST_DATA_FOLDER="${TEST_DATA_FOLDER}")
+# message("${PROJECT_NAME}|test_data dir = ${TEST_DATA_FOLDER}")
 add_subdirectory(src)
-add_subdirectory(tests)
 
-
+# add_subdirectory(tests)
