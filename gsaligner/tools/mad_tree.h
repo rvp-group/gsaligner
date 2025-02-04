@@ -28,7 +28,7 @@
 
 #pragma once
 
-#include "utils.cuh"
+#include "utils.h"
 
 #include <Eigen/Core>
 #include <atomic>
@@ -98,5 +98,5 @@ struct MADtree {
   Eigen::Matrix3d eigenvectors_;
 
 protected:
-  MADtree(){};
+  MADtree() {};
 };

@@ -26,29 +26,32 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-// pybind11
-#include <pybind11/chrono.h>
-#include <pybind11/complex.h>
-#include <pybind11/eigen.h>
-#include <pybind11/functional.h>
-#include <pybind11/numpy.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-#include <pybind11/stl_bind.h>
+#pragma once
 
-// std stuff
-#include <Eigen/Core>
-#include <memory>
-#include <vector>
+#include <tools/lie_algebra.h>
+#include <tools/utils.h>
 
-#include "eigen_stl_bindings.h"
+#include <Eigen/Eigenvalues>
+#include <fstream>
+#include <iostream>
+#include <sstream>
 
-PYBIND11_MAKE_OPAQUE(std::vector<Eigen::Vector3d>);
+struct VelEstimator {
+  VelEstimator(double sensor_hz);
 
-namespace py11 = pybind11;
-using namespace py11::literals;
+  void setOdometry(const std::vector<Eigen::Isometry3d>& registration);
 
-PYBIND11_MODULE(pyvector, m) {
-  auto vector3dvector = pybind_eigen_vector_of_vector<Eigen::Vector3d>(
-    m, "VectorEigen3d", "std::vector<Eigen::Vector3d>", py11::py_array_to_vectors_double<Eigen::Vector3d>);
-}
+  void init(const Vector6d& velocity = Vector6d::Zero());
+  void oneRound();
+
+  void errorAndJacobian(Vector6d& e, Matrix6d& J,
+                        const Eigen::Isometry3d& T_now,
+                        const Eigen::Isometry3d& T_prev, const double delta_t);
+  void update(const Eigen::Isometry3d& T_now, const Eigen::Isometry3d& T_prev,
+              const double delta_t, const double scale);
+
+  Matrix6d H_adder_;
+  Vector6d X_, b_adder_;
+  std::vector<Eigen::Isometry3d> odometry_;
+  double ts_;
+};

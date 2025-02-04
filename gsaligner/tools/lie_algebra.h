@@ -32,12 +32,6 @@
 
 namespace lie {
 
-  __device__ __forceinline__ Eigen::Matrix3f skew(const Eigen::Vector3f& v) {
-    Eigen::Matrix3f S;
-    S << 0.0, -v[2], v[1], v[2], 0.0, -v[0], -v[1], v[0], 0.0;
-    return S;
-  }
-
   inline Eigen::Matrix3d skew(const Eigen::Vector3d& v) {
     Eigen::Matrix3d S;
     S << 0.0, -v[2], v[1], v[2], 0.0, -v[0], -v[1], v[0], 0.0;
