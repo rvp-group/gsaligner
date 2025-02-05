@@ -39,7 +39,7 @@ void PhotometricFac::setFixedData(ImageSet* refData) {
   camType_ = referenceData_->sensor_->cameraType();
   sensorOffsetInverse_ = referenceData_->sensor_->sensorOffset().inverse();
   sensorOffsetRotationInverse_ = sensorOffsetInverse_.linear();
-  // referenceData_->matrix_.toDevice();
+  referenceData_->matrix_.toDevice();
 }
 
 void PhotometricFac::setMovingData(const ImageSet& currData) {
@@ -49,7 +49,9 @@ void PhotometricFac::setMovingData(const ImageSet& currData) {
 void PhotometricFac::setTransform(const Eigen::Isometry3f& transform) {
   X_ = transform;
   SX_ = sensorOffsetInverse_ * X_;
+  std::cout << "SX_ = \n" << SX_.matrix() << std::endl;
   neg2rotSX_ = -2.f * SX_.linear();
+  std::cout << "neg2rotSX_ = \n" << neg2rotSX_ << std::endl;
 }
 
 void PhotometricFac::compute(const size_t max_iterations,

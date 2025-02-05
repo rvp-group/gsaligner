@@ -124,7 +124,8 @@ class __align__(16) PhotometricFac {
     std::pair<float, float> linearize();
   // clang-format on
 
- protected:
+  //  protected:
+ public:
   MatrixCloud currData_;
   Eigen::Isometry3f X_;
   Eigen::Isometry3f sensorOffsetInverse_;

@@ -205,10 +205,12 @@ void GSAligner::setReference(const torch::Tensor& ref_depth_,
   }
   ref_image = photo::Image(image_height, image_width);
   init_photo_image_from_buffer(ref_depth_, ref_image, image_height, image_width); // TODO: ref_image.toHost() if segfault occurs
+  ref_image.toHost();
   auto ref_projmat = ref_projmat_.to(torch::kCPU);
   Eigen::Matrix4f fullProjMatrix =
     Eigen::Map<Eigen::Matrix<float, 4, 4, Eigen::ColMajor>>(ref_projmat.contiguous().data<float>());
   ref_sensor->cameraMatrix() = fullProjMatrix.block<3, 3>(0, 0);
+  std::cout << "ref_sensor->cameraMatrix()=\n" << ref_sensor->cameraMatrix() << std::endl;
 
   ref_set.matrix_     = ref_image; // TODO: Check if this is correct
   ref_set.attributes_ = photo_attributes;
@@ -256,10 +258,12 @@ void GSAligner::setQuery(const torch::Tensor& query_depth_,
   auto projmat                   = query_projmat_.to(torch::kCPU);
   Eigen::Matrix4f fullProjMatrix = Eigen::Map<Eigen::Matrix<float, 4, 4, Eigen::ColMajor>>(projmat.contiguous().data<float>());
   query_sensor->cameraMatrix()   = fullProjMatrix.block<3, 3>(0, 0);
+  std::cout << "query_sensor->cameraMatrix()=\n" << query_sensor->cameraMatrix() << std::endl;
 
   query_set.matrix_     = query_image; // TODO: Check if this is correct
   query_set.attributes_ = photo_attributes;
-  query_set.sensor_     = query_sensor;
+  // query_set.sensor_     = query_sensor;
+  query_set.sensor_ = ref_sensor;
 
   photo_fact.setMovingData(query_set);
 
@@ -333,8 +337,8 @@ std::tuple<torch::Tensor, float, float> GSAligner::alignPhotometric(const torch:
   Eigen::Isometry3f ig     = Eigen::Isometry3f::Identity();
   ig.linear()              = ig_eigen.block<3, 3>(0, 0);
   ig.translation()         = ig_eigen.block<3, 1>(0, 3);
-  std::cout << "photometric| ig=\n" << ig.matrix() << std::endl;
-  std::cout << "photometric| K=\n" << ref_sensor->cameraMatrix() << std::endl;
+  // std::cout << "photometric| ig=\n" << ig.matrix() << std::endl;
+  // std::cout << "photometric| K=\n" << ref_sensor->cameraMatrix() << std::endl;
   // std::cout << "photometric| photo_omega_depth" << photo_fact.omegaDepth() << std::endl;
   // std::cout << "photometric| photo_depth_rejection_threshold" << photo_fact.depthRejectionThreshold() << std::endl;
   // std::cout << "photometric| photo_rho_ker" << photo_fact.kernelChiThreshold() << std::endl;
@@ -342,6 +346,24 @@ std::tuple<torch::Tensor, float, float> GSAligner::alignPhotometric(const torch:
   // std::cout << "photometric| photo_max_depth" << photo_max_depth << std::endl;
   // std::cout << "photometric| photo_iterations" << photo_iterations << std::endl;
 
+  // std::cout << "photo_fact| X_=\n" << photo_fact.X_.matrix() << std::endl;
+  // std::cout << "photo_fact| sensorOffsetInverse_=\n" << photo_fact.sensorOffsetInverse_.matrix() << std::endl;
+  // std::cout << "photo_fact| SX_=\n" << photo_fact.SX_.matrix() << std::endl;
+  // std::cout << "photo_fact| neg2rotSX_=\n" << photo_fact.neg2rotSX_ << std::endl;
+  // std::cout << "photo_fact| sensorOffsetRotationInverse_=\n" << photo_fact.sensorOffsetRotationInverse_ << std::endl;
+  // std::cout << "photo_fact| cameraMatrix_=\n" << photo_fact.cameraMatrix_ << std::endl;
+  // std::cout << "photo_fact| camType_=\n" << photo_fact.camType_ << std::endl;
+  // std::cout << "photo_fact| omegaIntensity_=\n" << photo_fact.omegaIntensity_ << std::endl;
+  // std::cout << "photo_fact| omegaDepth_=\n" << photo_fact.omegaDepth_ << std::endl;
+  // std::cout << "photo_fact| omegaNormals_=\n" << photo_fact.omegaNormals_ << std::endl;
+  // std::cout << "photo_fact| depthRejectionThreshold_=\n" << photo_fact.depthRejectionThreshold_ << std::endl;
+  // std::cout << "photo_fact| kernelChiThreshold_=\n" << photo_fact.kernelChiThreshold_ << std::endl;
+  // std::cout << "photo_fact| minDepth_=" << photo_fact.minDepth_ << std::endl;
+  // std::cout << "photo_fact| maxDepth_=" << photo_fact.maxDepth_ << std::endl;
+  // std::cout << "photo_fact| rows_=" << photo_fact.rows_ << std::endl;
+  // std::cout << "photo_fact| cols_=" << photo_fact.cols_ << std::endl;
+  // std::cout << "photo_fact| entry_array_size_=" << photo_fact.entry_array_size_ << std::endl;
+  ref_image.toDevice();
   photo_fact.compute(photo_iterations, true);
   return std::make_tuple(torch::eye(4, torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCUDA)), 0.0, 0.0);
 }
