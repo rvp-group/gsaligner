@@ -16,6 +16,7 @@ setup(
             name="gsaligner._C",
             sources=[
                 "gsaligner/aligner.cu",
+                "gsaligner/aligner_utils.cu",
                 "ext.cpp",
                 "gsaligner/tools/image_set.cpp",
                 "gsaligner/tools/image_set_impl.cu",
