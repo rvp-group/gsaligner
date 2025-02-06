@@ -5,7 +5,7 @@ namespace photo {
 
   ///////////////////////////////////////////////// PROJECTIONS KERNELS /////////////////////////////////////////////////
 
- __global__ void project_kernel(Workspace* workspace,
+  __global__ void project_kernel(Workspace* workspace,
                                  const MatrixCloud* cloud,
                                  const Image* ref_image,
                                  const Eigen::Isometry3f SX,
@@ -18,24 +18,17 @@ namespace photo {
     if (tid >= cloud->size())
       return;
 
-    const auto full_point = cloud->at<1>(tid);
-    const Eigen::Vector3f point = full_point.coordinates;
-    const Eigen::Vector3f normal = full_point.normal;
-    const float intensity = full_point.intensity;
+    const auto full_point                   = cloud->at<1>(tid);
+    const Eigen::Vector3f point             = full_point.coordinates;
+    const Eigen::Vector3f normal            = full_point.normal;
+    const float intensity                   = full_point.intensity;
     const Eigen::Vector3f transformed_point = SX * point;
 
-    float depth = 0.f;
+    float depth                  = 0.f;
     Eigen::Vector3f camera_point = Eigen::Vector3f::Zero();
-    Eigen::Vector2f image_point = Eigen::Vector2f::Zero();
+    Eigen::Vector2f image_point  = Eigen::Vector2f::Zero();
 
-    const bool is_good = project(image_point,
-                                 camera_point,
-                                 depth,
-                                 transformed_point,
-                                 cam_type,
-                                 cam_mat,
-                                 min_depth,
-                                 max_depth);
+    const bool is_good = project(image_point, camera_point, depth, transformed_point, cam_type, cam_mat, min_depth, max_depth);
 
     if (!is_good)
       return;
@@ -69,49 +62,46 @@ namespace photo {
 
     const Eigen::Vector3f rn = SX.linear() * normal;
     entry.prediction << intensity, depth, rn.x(), rn.y(), rn.z();
-    entry.point = point;
-    entry.normal = normal;
+    entry.point            = point;
+    entry.normal           = normal;
     entry.transformedPoint = transformed_point;
-    entry.cameraPoint = camera_point;
-    entry.imagePoint = image_point;
-    entry.chi = 0.f;
+    entry.cameraPoint      = camera_point;
+    entry.imagePoint       = image_point;
+    entry.chi              = 0.f;
   }
 
   void PhotometricFac::computeProjections() {
     // resize workspace based on rows and columns
     workspace_->resize(rows_, cols_);
     // initialize workspace (only in device)
-    workspace_->fill(WorkspaceEntry(), true); 
+    workspace_->fill(WorkspaceEntry(), true);
 
     // call project_kernel with is_depth_buffer_ set to true
-    project_kernel<<<workspace_->nBlocks(), workspace_->nThreads()>>>(
-        workspace_->deviceInstance(),
-        currData_.deviceInstance(),
-        referenceData_->matrix_.deviceInstance(),
-        SX_,
-        camType_,
-        cameraMatrix_,
-        minDepth_,
-        maxDepth_,
-        true);
+    project_kernel<<<workspace_->nBlocks(), workspace_->nThreads()>>>(workspace_->deviceInstance(),
+                                                                      currData_.deviceInstance(),
+                                                                      referenceData_->matrix_.deviceInstance(),
+                                                                      SX_,
+                                                                      camType_,
+                                                                      cameraMatrix_,
+                                                                      minDepth_,
+                                                                      maxDepth_,
+                                                                      true);
     CUDA_CHECK(cudaDeviceSynchronize());
 
     // call project_kernel with is_depth_buffer_ set to false
-    project_kernel<<<workspace_->nBlocks(), workspace_->nThreads()>>>(
-        workspace_->deviceInstance(),
-        currData_.deviceInstance(),
-        referenceData_->matrix_.deviceInstance(),
-        SX_,
-        camType_,
-        cameraMatrix_,
-        minDepth_,
-        maxDepth_,
-        false);
+    project_kernel<<<workspace_->nBlocks(), workspace_->nThreads()>>>(workspace_->deviceInstance(),
+                                                                      currData_.deviceInstance(),
+                                                                      referenceData_->matrix_.deviceInstance(),
+                                                                      SX_,
+                                                                      camType_,
+                                                                      cameraMatrix_,
+                                                                      minDepth_,
+                                                                      maxDepth_,
+                                                                      false);
     CUDA_CHECK(cudaDeviceSynchronize());
-    }
+  }
 
-
-__device__ PointStatusFlag errorAndJacobian(Vector5f& e,
+  __device__ PointStatusFlag errorAndJacobian(Vector5f& e,
                                               Matrix5_6f& J,
                                               WorkspaceEntry& entry,
                                               const Image* image,
@@ -124,9 +114,9 @@ __device__ PointStatusFlag errorAndJacobian(Vector5f& e,
                                               const float weight_normals,
                                               const float d_threshold,
                                               bool chi_only) {
-    PointStatusFlag status           = Good;
-    const float z                    = entry.depth();
-    const float iz                   = 1.f / z;
+    PointStatusFlag status                  = Good;
+    const float z                           = entry.depth();
+    const float iz                          = 1.f / z;
     const Eigen::Vector3f point             = entry.point;
     const Eigen::Vector3f normal            = entry.normal;
     const Eigen::Vector3f transformed_point = entry.transformedPoint;
@@ -143,7 +133,7 @@ __device__ PointStatusFlag errorAndJacobian(Vector5f& e,
     }
 
     // in error put the difference between prediction and measurement
-    e            = entry.prediction - measurement;
+    e           = entry.prediction - measurement;
     entry.error = e;
     e(0) *= weight_intensity;
     e(1) *= weight_depth;
@@ -151,8 +141,25 @@ __device__ PointStatusFlag errorAndJacobian(Vector5f& e,
 
     // if depth error is to big we drop
     const float depth_error = e(1) * e(1);
-    if (depth_error > d_threshold){
-      // printf("depth not ok!\t");
+    if (depth_error > d_threshold) {
+      // printf("depth not ok! [img.x=%f img.y=%f depth=%f derr=%f t=%f]\n",
+      //        image_point.x(),
+      //        image_point.y(),
+      //        z,
+      //        depth_error,
+      //        d_threshold);
+      // printf("[point=[%f %f %f] tpoint=[%f %f %f] [row=%f col=%f pred=%f meas=%f err=%f]\n",
+      //        point.x(),
+      //        point.y(),
+      //        point.z(),
+      //        transformed_point.x(),
+      //        transformed_point.y(),
+      //        transformed_point.z(),
+      //        image_point.y(),
+      //        image_point.x(),
+      //        entry.prediction(1),
+      //        measurement(1),
+      //        e(1));
       return DepthError;
     }
     if (chi_only)
@@ -164,7 +171,6 @@ __device__ PointStatusFlag errorAndJacobian(Vector5f& e,
     Matrix3_6f J_icp        = Matrix3_6f::Zero();
     J_icp.block<3, 3>(0, 0) = SX.linear();
     J_icp.block<3, 3>(0, 3) = neg2rotSX * lie::skew(point);
-
 
     // extract values from hom for readability
     const float iz2 = iz * iz;
@@ -204,8 +210,7 @@ __device__ PointStatusFlag errorAndJacobian(Vector5f& e,
           -fy * transformed_point.y() * transformed_point.z() * irxy * ir2, fy * rxy * ir2;
 
         Matrix1_3f J_depth; // jacobian of range(x,y,z)
-        J_depth << transformed_point.x() * ir, transformed_point.y() * ir,
-          transformed_point.z() * ir;
+        J_depth << transformed_point.x() * ir, transformed_point.y() * ir, transformed_point.z() * ir;
 
         // add the jacobian of range/depth prediction to row 1
         J.row(1) = J_depth * J_icp;
@@ -242,7 +247,7 @@ __device__ PointStatusFlag errorAndJacobian(Vector5f& e,
                                    const float weight_depth,
                                    const float weight_normals,
                                    const float d_threshold,
-                                   const bool chi_only=false) {
+                                   const bool chi_only = false) {
     int tid = threadIdx.x + blockIdx.x * blockDim.x;
     if (tid >= workspace->size())
       return;
@@ -279,11 +284,10 @@ __device__ PointStatusFlag errorAndJacobian(Vector5f& e,
     }
     // from now will be evaluated later
     ls_entry[idx].is_good = 1;
-    const float chi        = e.dot(e);
-
+    const float chi       = e.dot(e);
 
     ls_entry[idx].chi = ws_entry.chi = chi;
-    float lambda                       = 1.f;
+    float lambda                     = 1.f;
     if (chi > e_threshold) {
       lambda = sqrt(e_threshold / chi);
     } else {
@@ -317,8 +321,7 @@ __device__ PointStatusFlag errorAndJacobian(Vector5f& e,
         entry_array_ = nullptr;
       }
       if (workspace_->size())
-        CUDA_CHECK(
-          cudaMalloc((void**) &entry_array_, sizeof(LinearSystemEntry) * workspace_->size()));
+        CUDA_CHECK(cudaMalloc((void**) &entry_array_, sizeof(LinearSystemEntry) * workspace_->size()));
       entry_array_size_ = workspace_->size();
     }
 
@@ -326,27 +329,24 @@ __device__ PointStatusFlag errorAndJacobian(Vector5f& e,
     if (!workspace_->empty()) {
       // clear linear system entry buffer
       LinearSystemEntry zeroval;
-      fill_kernel<<<workspace_->nBlocks(), workspace_->nThreads()>>>(
-        entry_array_, zeroval, workspace_->size());
+      fill_kernel<<<workspace_->nBlocks(), workspace_->nThreads()>>>(entry_array_, zeroval, workspace_->size());
       CUDA_CHECK(cudaDeviceSynchronize());
 
       // linearize get solver entry from two pyramids
-      linearize_kernel<<<workspace_->nBlocks(), workspace_->nThreads()>>>(
-        entry_array_,
-        workspace_->deviceInstance(),
-        referenceData_->matrix_.deviceInstance(),
-        SX_,
-        neg2rotSX_,
-        cameraMatrix_,
-        camType_,
-        kernelChiThreshold_,
-        scaling,
-        weight_intensity,
-        weight_depth,
-        weight_normals,
-        depthRejectionThreshold_);
+      linearize_kernel<<<workspace_->nBlocks(), workspace_->nThreads()>>>(entry_array_,
+                                                                          workspace_->deviceInstance(),
+                                                                          referenceData_->matrix_.deviceInstance(),
+                                                                          SX_,
+                                                                          neg2rotSX_,
+                                                                          cameraMatrix_,
+                                                                          camType_,
+                                                                          kernelChiThreshold_,
+                                                                          scaling,
+                                                                          weight_intensity,
+                                                                          weight_depth,
+                                                                          weight_normals,
+                                                                          depthRejectionThreshold_);
       CUDA_CHECK(cudaDeviceSynchronize());
-
 
       // reduce sum
       const int num_threads    = BLOCKSIZE; // macro optimized for LinearSystemEntry
@@ -358,8 +358,7 @@ __device__ PointStatusFlag errorAndJacobian(Vector5f& e,
 
       // copy to host and do last reduction, useless to evocate the gpu for stupid problem
       LinearSystemEntry* hsum_block = new LinearSystemEntry[num_blocks];
-      CUDA_CHECK(cudaMemcpy(
-        hsum_block, dsum_block, num_blocks * sizeof(LinearSystemEntry), cudaMemcpyDeviceToHost));
+      CUDA_CHECK(cudaMemcpy(hsum_block, dsum_block, num_blocks * sizeof(LinearSystemEntry), cudaMemcpyDeviceToHost));
       // sum latest part, buffer equal to num of blocks
       for (int i = 0; i < num_blocks; i++) {
         sum += hsum_block[i];
@@ -368,7 +367,6 @@ __device__ PointStatusFlag errorAndJacobian(Vector5f& e,
       // free mem
       delete hsum_block;
       CUDA_CHECK(cudaFree(dsum_block));
-      
     }
 
     // get total linear system entry H, b and tot error
@@ -379,37 +377,19 @@ __device__ PointStatusFlag errorAndJacobian(Vector5f& e,
     const size_t num_inliers = sum.is_inlier;
     const size_t num_good    = sum.is_good;
 
-
     // if num good is 0 fucks chi up, if we don't have any inliers is
     // likely num good is very low
-    if (!num_good || !num_inliers){
+    if (!num_good || !num_inliers) {
       return std::pair(tot_chi, float(num_inliers) / float(rows_ * cols_));
     }
-    const float residual = tot_chi / num_good;
+    const float residual     = tot_chi / num_good;
     const float inlier_ratio = float(num_inliers) / float(rows_ * cols_);
+    const Vector6d dx        = tot_H.ldlt().solve(-tot_b);
+    Eigen::Isometry3d dX     = Eigen::Isometry3d::Identity();
+    dX.linear()              = lie::expMapSO3(dx.tail(3)); // TODO maybe stick to quaternion?
+    dX.translation()         = dx.head(3);
+    X_                       = X_ * dX.cast<float>();
 
-    const Vector6d dx          = tot_H.ldlt().solve(-tot_b);
-    Eigen::Isometry3d dX = Eigen::Isometry3d::Identity();
-    dX.linear()      = lie::expMapSO3(dx.tail(3)); // TODO maybe stick to quaternion?      
-    dX.translation() = dx.head(3);
-    X_               = X_ * dX.cast<float>();
-    
     return std::pair(residual, inlier_ratio);
   }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+} // namespace photo
