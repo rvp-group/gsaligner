@@ -56,7 +56,7 @@ class GSAligner:
         Args:
             depth_image (torch.Tensor): (1,H,W) torch.float32 tensor
             cloud (torch.Tensor: (N, 3) torch.float32 tensor
-            projmat (torch.Tensor): (4, 4) torch.float32 tensor
+            projmat (torch.Tensor): (4, 4) torch.float32 tensor **(MUST BE TRANSPOSED)**
         """
 
         self.impl.setReference(depth_image, cloud.cpu().double(), projmat)
@@ -69,7 +69,7 @@ class GSAligner:
         Args:
             depth_image (torch.Tensor): (1,H,W) torch.float32 tensor
             cloud (torch.Tensor): (N, 3) torch.float32 tensor
-            projmat (torch.Tensor): (4, 4) torch.float32 tensor
+            projmat (torch.Tensor): (4, 4) torch.float32 tensor **(MUST BE TRANSPOSED)**
         """
         self.impl.setQuery(depth_image, cloud.cpu().double(), projmat)
 
