@@ -161,6 +161,16 @@ class ImageSet {
   void growMask();
   void updateDerivatives();
 
+  void growMaskDevice();
+  void updateDerivativesDevice();
+  // void updateDerivativesDevice(Image& matrix_, const float
+  // threshold_intensity,
+  //                              const float threshold_depth,
+  //                              const float threshold_normal,
+  //                              const FilterPolicy policy_intensity,
+  //                              const FilterPolicy policy_depth,
+  //                              const FilterPolicy policy_normal);
+
   SensorPtr sensor_;
   Image matrix_;  // TODO change name - image with all stuff;
   ImageAttributesPtr attributes_;

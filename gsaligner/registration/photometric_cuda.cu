@@ -377,8 +377,6 @@ namespace photo {
     const size_t num_inliers = sum.is_inlier;
     const size_t num_good    = sum.is_good;
 
-    std::cout << "inliers=" << num_inliers << " good=" << num_good << " chi=" << tot_chi << std::endl;
-
     // if num good is 0 fucks chi up, if we don't have any inliers is
     // likely num good is very low
     if (!num_good || !num_inliers) {
@@ -386,14 +384,11 @@ namespace photo {
     }
     const float residual     = tot_chi / num_good;
     const float inlier_ratio = float(num_inliers) / float(rows_ * cols_);
-    std::cout << "tot_H:\n" << tot_H << std::endl;
-    std::cout << "tot_b: " << tot_b.transpose() << std::endl;
-    const Vector6d dx    = tot_H.ldlt().solve(-tot_b);
-    Eigen::Isometry3d dX = Eigen::Isometry3d::Identity();
-    dX.linear()          = lie::expMapSO3(dx.tail(3)); // TODO maybe stick to quaternion?
-    dX.translation()     = dx.head(3);
-    std::cout << "dX=\n" << dX.matrix() << std::endl;
-    X_ = X_ * dX.cast<float>();
+    const Vector6d dx        = tot_H.ldlt().solve(-tot_b);
+    Eigen::Isometry3d dX     = Eigen::Isometry3d::Identity();
+    dX.linear()              = lie::expMapSO3(dx.tail(3)); // TODO maybe stick to quaternion?
+    dX.translation()         = dx.head(3);
+    X_                       = X_ * dX.cast<float>();
 
     return std::pair(residual, inlier_ratio);
   }

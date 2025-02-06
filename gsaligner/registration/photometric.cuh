@@ -120,7 +120,7 @@ class __align__(16) PhotometricFac {
     inline void setKernelChiThreshold(float v) { kernelChiThreshold_ = v; }
 
     inline const Eigen::Isometry3f& transform() const{ return X_; };
-    void compute(const size_t max_iterations, const bool print_stats);
+    std::pair<float, float> compute(const size_t max_iterations, const bool print_stats);
     std::pair<float, float> linearize();
   // clang-format on
 

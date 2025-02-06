@@ -39,7 +39,7 @@ void PhotometricFac::setFixedData(ImageSet* refData) {
   camType_ = referenceData_->sensor_->cameraType();
   sensorOffsetInverse_ = referenceData_->sensor_->sensorOffset().inverse();
   sensorOffsetRotationInverse_ = sensorOffsetInverse_.linear();
-  referenceData_->matrix_.toDevice();
+  // referenceData_->matrix_.toDevice();
 }
 
 void PhotometricFac::setMovingData(const ImageSet& currData) {
@@ -49,13 +49,11 @@ void PhotometricFac::setMovingData(const ImageSet& currData) {
 void PhotometricFac::setTransform(const Eigen::Isometry3f& transform) {
   X_ = transform;
   SX_ = sensorOffsetInverse_ * X_;
-  std::cout << "SX_ = \n" << SX_.matrix() << std::endl;
   neg2rotSX_ = -2.f * SX_.linear();
-  std::cout << "neg2rotSX_ = \n" << neg2rotSX_ << std::endl;
 }
 
-void PhotometricFac::compute(const size_t max_iterations,
-                             const bool print_stats) {
+std::pair<float, float> PhotometricFac::compute(const size_t max_iterations,
+                                                const bool print_stats) {
   // checks if needed variables are correctly set
   assert((referenceData_->rows() != 0 || referenceData_->cols() != 0) &&
          "PhotometricFac::compute|level rows or columns set to zero");
@@ -63,28 +61,20 @@ void PhotometricFac::compute(const size_t max_iterations,
       (referenceData_->max_depth != 0.f || referenceData_->min_depth != 0.f) &&
       "PhotometricFac::compute|level level max_depth or min_depth set to zero");
 
-  float reg_time = 0;
-  struct timeval reg_start, reg_end, reg_delta;
-  gettimeofday(&reg_start, nullptr);
   std::pair<float, float> stats;
   for (size_t iteration = 0; iteration < max_iterations; ++iteration) {
     setTransform(X_);  // update offseted transformations
-    std::cout << "\niteration " << iteration << " " << "X_ = \n"
-              << X_.matrix() << std::endl;
     computeProjections();
-    // performs linearization through jacobian computation
     stats = linearize();
   }
-  gettimeofday(&reg_end, nullptr);
-  timersub(&reg_end, &reg_start, &reg_delta);
-  reg_time = float(reg_delta.tv_sec) * 1000. + 1e-3 * reg_delta.tv_usec;
 
-  if (print_stats) {
-    std::cout << "photometric|compute time " << reg_time << " [ms] "
-              << std::endl;
-    std::cout << "photometric|residual " << stats.first << std::endl;
-    std::cout << "photometric|inlier ratio " << stats.second << std::endl;
-  }
+  // if (print_stats) {
+  //   // std::cout << "photometric|compute time " << reg_time << " [ms] "
+  //   //           << std::endl;
+  //   std::cout << "photometric|residual " << stats.first << std::endl;
+  //   std::cout << "photometric|inlier ratio " << stats.second << std::endl;
+  // }
+  return stats;
 }
 
 }  // namespace photo
