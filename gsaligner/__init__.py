@@ -1,6 +1,24 @@
 import torch
 from typing_extensions import Tuple
+from dataclasses import dataclass
 from gsaligner._C import GSAligner as GSAlignerImpl
+
+
+@dataclass
+class GSAlignerParams:
+    image_height: int = 0
+    image_width: int = 0
+    geom_b_min: float = 0.1
+    geom_b_max: float = 0.2
+    geom_b_ratio: float = 0.02
+    geom_rho_kernel: float = 0.8
+    geom_iterations: int = 10
+    photo_omega_depth: float = 5.0
+    photo_depth_rejection_threshold: float = 0.8
+    photo_rho_kernel: float = 1.0
+    photo_min_depth: float = 0.5
+    photo_max_depth: float = 80.0
+    photo_iterations: int = 10
 
 
 class GSAligner:
