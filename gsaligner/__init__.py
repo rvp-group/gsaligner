@@ -27,8 +27,8 @@ class GSAligner:
     between two LiDAR point clouds.
     """
 
-    def __init__(self, height: int,
-                 width: int,
+    def __init__(self, image_height: int,
+                 image_width: int,
                  geom_b_min: float,
                  geom_b_max: float,
                  geom_b_ratio: float,
@@ -59,7 +59,7 @@ class GSAligner:
             photo_iterations (int): The number of photometric iterations.
         """
 
-        self.impl = GSAlignerImpl(height, width,
+        self.impl = GSAlignerImpl(image_height, image_width,
                                   geom_b_min, geom_b_max, geom_b_ratio,
                                   geom_rho_kernel, geom_iterations,
                                   photo_omega_depth, photo_depth_rejection_threshold,
