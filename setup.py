@@ -1,9 +1,8 @@
 from setuptools import setup
 from torch.utils.cpp_extension import CUDAExtension, BuildExtension, CppExtension
 import os
-os.path.dirname(os.path.abspath(__file__))
 
-EIGEN_INCLUDE_DIR = "/usr/include/eigen3"
+os.path.dirname(os.path.abspath(__file__))
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -26,16 +25,14 @@ setup(
                 "gsaligner/registration/photometric.cpp",
                 "gsaligner/registration/photometric_cuda.cu",
                 "gsaligner/registration/vel_estimator.cpp",
-
             ],
             include_dirs=[
-                EIGEN_INCLUDE_DIR,
+                os.path.join(BASE_DIR, "third_party/eigen"),
                 os.path.join(BASE_DIR, "gsaligner"),
                 os.path.join(BASE_DIR, "gsaligner/tools"),
-                os.path.join(BASE_DIR, "gsaligner/registration"),],
+                os.path.join(BASE_DIR, "gsaligner/registration"),
+            ],
         )
     ],
-    cmdclass={
-        "build_ext": BuildExtension
-    }
+    cmdclass={"build_ext": BuildExtension},
 )
