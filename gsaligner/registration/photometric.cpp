@@ -1,6 +1,6 @@
 #include "photometric.cuh"
 
-#include <casttert>
+#include <cassert>
 #include <sys/time.h>
 
 #include <tools/dual_matrix.cuh>
